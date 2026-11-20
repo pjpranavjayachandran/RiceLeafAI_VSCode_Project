@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RiceLeaf AI | Rice Disease Explorer</title>
+
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --forest: #153d30;
+      --leaf: #347351;
+      --lime: #dfeda5;
+      --paper: #f3f5ec;
+      --white: #fff;
+      --ink: #19352a;
+      --muted: #51665b;
+      --line: #d8e1d4;
+      color-scheme: light;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; }
+    [hidden] { display: none !important; }
+    a { color: var(--forest); }
+    button, input { font: inherit; }
+    button, summary { cursor: pointer; }
+    :focus-visible { outline: 3px solid #ab7926; outline-offset: 3px; }
+    .wrap { width: min(1120px, calc(100% - 32px)); margin: auto; }
+
+    header, .actions, nav, .tabs, .score-line {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    header { justify-content: space-between; padding: 20px 0; }
+    .brand { font-size: 1.35rem; font-weight: 750; letter-spacing: -.04em; }
+    #status { color: var(--muted); font-size: .9rem; }
+
+    .hero {
+      padding: clamp(28px, 6vw, 68px);
+      color: #f9fbef;
+      border-radius: 24px;
+      background: radial-gradient(ellipse at 100% 0, #508264, transparent 55%), #12392b;
+    }
+
+    h1, h2, .verdict {
+      font-family: Georgia, serif;
+      font-weight: 500;
+      letter-spacing: -.045em;
+    }
+
+    h1 { font-size: clamp(2.8rem, 7vw, 5.8rem); line-height: 1; margin: 0; }
+    h2 { font-size: clamp(1.9rem, 4vw, 3rem); margin: 0 0 10px; }
+    h3 { margin: 0 0 8px; }
+    p { line-height: 1.55; }
+    .hero p { max-width: 55ch; color: #e0eadb; }
+    .hero a, .primary, .tabs button, nav a, .secondary {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 10px 16px;
+      text-decoration: none;
+      font-weight: 650;
+    }
+    .hero a, .secondary { background: var(--lime); color: var(--forest); border: 0; }
+    .primary { background: var(--forest); color: white; border: 0; }
+    button:disabled { opacity: .5; cursor: default; }
+    nav { margin: 18px 0; }
+    nav a, .tabs button {
+      background: white; color: var(--forest); border: 1px solid var(--line);
+    }
+    .tabs button[aria-pressed="true"] { background: var(--forest); color: white; }
+
+    .card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: clamp(18px, 3vw, 32px);
+      margin-bottom: 16px;
+      scroll-margin-top: 12px;
+    }
+    .muted, small { color: var(--muted); }
+    .two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
+    .two > * { min-width: 0; }
+    .soft { background: #f0f5e9; border-radius: 13px; padding: 15px; }
+    .tabs, .actions { margin: 12px 0; }
+    #map { height: 340px; border-radius: 14px; background: #e5edde; isolation: isolate; }
+    #regions { display: grid; gap: 6px; }
+    #regions button {
+      padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line);
+      background: white; text-align: left; color: var(--ink);
+    }
+    #regions button[aria-pressed="true"] { background: var(--lime); }
+
+    .upload {
+      display: grid; gap: 9px; padding: 16px;
+      border: 1px dashed #87a48b; border-radius: 14px; background: #f5f8ef;
+    }
+    input[type=file] { width: 100%; max-width: 100%; }
+    .stage {
+      position: relative; display: table; max-width: 100%;
+      margin: 14px auto; overflow: hidden; border-radius: 12px;
+    }
+    #preview { display: block; max-width: 100%; max-height: 420px; }
+    #heat {
+      display: grid; position: absolute; inset: 0;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr); pointer-events: none;
+    }
+    .verdict { font-size: 2rem; margin: 6px 0; }
+    .score-line { justify-content: space-between; margin-top: 8px; }
+    progress { width: 100%; accent-color: var(--leaf); }
+    .warning { background: #fff3d7; padding: 12px; border-radius: 10px; }
+    .examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+    figure { margin: 0; padding: 6px; background: #f0f4eb; border-radius: 8px; }
+    figure img { width: 100%; height: 85px; object-fit: contain; }
+    figcaption { font-size: .8rem; }
+    details { margin-top: 14px; }
+    summary { font-weight: 650; }
+    .scroll { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+    th, td { text-align: left; padding: 9px; border-bottom: 1px solid var(--line); }
+    th { white-space: nowrap; }
+    .winner { background: #edf5db; }
+    footer { padding: 10px 0 28px; }
+    @media (max-width: 720px) {
+      .two { grid-template-columns: 1fr; }
+      #map { height: 285px; }
+      nav a { padding: 7px 11px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <header>
+      <span class="brand">RiceLeaf AI</span>
+      <span id="status" role="status">Checking model…</span>
+    </header>
+
+    <section class="hero">
+      <h1>Read the rice leaf.</h1>
+      <p>Explore where rice grows, learn to recognize disease symptoms,
+         and use a trained model to examine your own rice plant photo.</p>
+      <a href="#scanner">Scan a photo ↓</a>
+    </section>
+
+    <nav aria-label="Page sections">
+      <a href="#atlas">Rice atlas</a>
+      <a href="#guide">Disease guide</a>
+      <a href="#solution">Our solution</a>
+      <a href="#scanner">Scanner</a>
+      <a href="#evaluation">Evaluation</a>
+    </nav>
+
+    <main>
+      <section id="atlas" class="card">
+        <h2>Where rice grows</h2>
+        <p class="muted">Choose a view, then select a region. Circle size represents
+          rice production within the selected view.</p>
+        <div class="tabs">
+          <button type="button" id="world-btn" aria-pressed="true">World</button>
+          <button type="button" id="india-btn" aria-pressed="false">India</button>
+        </div>
+        <p id="map-caption"></p>
+        <div class="two">
+          <div id="map" aria-label="Rice production map"></div>
+          <div>
+            <div id="regions"></div>
+            <p id="region-detail" class="soft" aria-live="polite"></p>
+          </div>
+        </div>
+        <p id="map-message" class="muted" role="status"></p>
+        <small>Markers represent approximate locations. Figures describe production
+          volume. Select World or India again to reset the view.</small>
+      </section>
+
+      <section id="guide" class="card">
+        <h2>Disease field guide</h2>
+        <p class="muted">Select a class to inspect its visual clues and choose a camera angle.</p>
+        <div id="disease-tabs" class="tabs"></div>
+        <div class="two soft" aria-live="polite">
+          <div><h3 id="disease-title"></h3><p id="disease-text"></p></div>
+          <div><strong>What to photograph</strong><p id="disease-photo"></p></div>
+        </div>
+      </section>
+
+      <section id="solution" class="card">
+        <h2>From photo to prediction</h2>
+        <p>The scanner resizes a photo to 64 × 64 pixels and divides it into 16 tiles.
+          Each tile contributes colour and edge measurements, giving the classifier
+          224 features. It compares the image with four rice classes.</p>
+        <details>
+          <summary>How do we evaluate the solution?</summary>
+          <p>Training images teach the models. Validation macro F1 helps select a
+            model while giving each class equal weight. A held-out test set measures
+            accuracy, macro precision, and recall. The confusion matrix shows which
+            diseases the selected model confuses.</p>
+        </details>
+        <p><a href="#scanner">Try the scanner ↓</a></p>
+      </section>
+
+      <section id="scanner" class="card">
+        <h2>Scan a rice plant</h2>
+        <div class="two">
+          <div>
+            <form id="scan-form">
+              <label class="upload">
+                <strong>Choose a rice photo</strong>
+                <input id="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
+                <small>JPEG, PNG or WebP · up to 8 MB</small>
+              </label>
+              <div id="stage" class="stage" hidden>
+                <img id="preview" alt="Selected rice plant photo">
+                <div id="heat" hidden aria-hidden="true"></div>
+              </div>
+              <div class="actions">
+                <button id="analyze" class="primary" disabled>Analyze photo</button>
+                <button id="heat-toggle" class="secondary" type="button"
+                        aria-pressed="false" hidden>Show heatmap</button>
+              </div>
+              <small id="heat-note" hidden>
+                Warmer tiles mark larger drops in the top class score when that
+                tile’s features are replaced with their training averages.
+              </small>
+            </form>
+          </div>
+          <div>
+            <p id="scan-message" class="muted" role="status">Select a photo to begin.</p>
+            <div id="result" hidden>
+              <h3 id="prediction" class="verdict"></h3>
+              <p id="runner"></p>
+              <p id="guidance" class="warning" hidden></p>
+              <div id="scores"></div>
+              <small>Percentages are relative model scores across the supported classes.</small>
+
+              <section id="case-section" hidden>
+                <h3 style="margin-top:18px">Similar training photos</h3>
+                <div id="cases" class="examples"></div>
+              </section>
+
+              <details>
+                <summary>Compare a second angle</summary>
+                <p>Choose a second photo of the same plant.</p>
+                <input id="second" type="file" accept="image/jpeg,image/png,image/webp">
+                <p id="agreement" role="status"></p>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="evaluation" class="card">
+        <h2>Model evaluation</h2>
+        <p id="eval-note" class="muted">Loading saved results…</p>
+        <div id="comparison" class="scroll"></div>
+        <details id="matrix-panel" hidden>
+          <summary>Explore the confusion matrix</summary>
+          <p>Read across a row to see where photos from one actual class were assigned.</p>
+          <div id="matrix" class="scroll"></div>
+        </details>
+      </section>
+    </main>
+
+    <footer>
+      <details>
+        <summary>Data and references</summary>
+        <ul>
+          <li><a href="https://apps.fas.usda.gov/psdonline/circulars/grain.pdf">
+            USDA Foreign Agricultural Service, world rice production</a> · 2024/25.</li>
+          <li><a href="https://www.indiabudget.gov.in/budget2025-26/economicsurvey/doc/Statistical-Appendix-in-English.pdf">
+            Economic Survey 2024–25, Statistical Appendix</a> · Table 1.18,
+            Indian state production in 2023–24.</li>
+          <li><a href="https://www.knowledgebank.irri.org/images/docs/diagnostic-of-common-diseases-of-rice.pdf">
+            IRRI, Diagnosis of Common Diseases of Rice</a>.</li>
+        </ul>
+      </details>
+    </footer>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const pct = value => `${(value * 100).toFixed(1)}%`;
+
+    // ---------- Rice atlas ----------
+    const atlas = {
+      world: {
+        caption: "Selected major producers · 2024–25 · million tonnes of milled rice",
+        center: [22, 55], zoom: 2,
+        rows: [
+          ["India", 150.184, 22.6, 79.4],
+          ["China", 145.275, 33.7, 108.0],
+          ["Bangladesh", 36.600, 23.8, 90.3],
+          ["Indonesia", 34.100, -6.2, 111.0],
+          ["Vietnam", 26.850, 15.6, 107.7]
+        ]
+      },
+      india: {
+        caption: "Three largest producing states · 2023–24 · million tonnes of rice",
+        center: [23.8, 81.8], zoom: 4,
+        rows: [
+          ["Telangana", 16.87, 18.1, 79.0, "12.24%"],
+          ["Uttar Pradesh", 15.99, 26.8, 80.9, "11.60%"],
+          ["West Bengal", 15.69, 23.5, 87.9, "11.38%"]
+        ]
+      }
+    };
+
+    let map, markers, activeView = "world";
+
+    function drawAtlas(key) {
+      activeView = key;
+      const view = atlas[key];
+      $("world-btn").setAttribute("aria-pressed", String(key === "world"));
+      $("india-btn").setAttribute("aria-pressed", String(key === "india"));
+      $("map-caption").textContent = view.caption;
+      $("regions").replaceChildren();
+      $("region-detail").textContent = "Select a region for its production figure.";
+
+      if (map) {
+        markers.clearLayers();
+        map.setView(view.center, view.zoom);
+      }
+
+      for (const [name, amount, lat, lon, share] of view.rows) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = `${name} · ${amount.toFixed(2)} Mt`;
+        button.setAttribute("aria-pressed", "false");
+        $("regions").append(button);
+
+        function select() {
+          for (const other of $("regions").children) {
+            other.setAttribute("aria-pressed", String(other === button));
+          }
+          const unit = key === "world" ? "milled rice" : "rice";
+          const year = key === "world" ? "2024–25" : "2023–24";
+          $("region-detail").textContent =
+            `${name} produced ${amount.toFixed(2)} million tonnes of ${unit} in ${year}.` +
+            (share ? ` Its share of Indian production was ${share}.` : "");
+        }
+
+        button.addEventListener("click", select);
+        if (map) {
+          const marker = L.circleMarker([lat, lon], {
+            radius: 22 * Math.sqrt(amount / view.rows[0][1]),
+            color: "#245339", fillColor: "#b3d36e", fillOpacity: .85, weight: 2
+          }).addTo(markers);
+          marker.bindTooltip(`${name} · ${amount.toFixed(2)} Mt`);
+          marker.on("click", select);
+          button.addEventListener("click", () => {
+            map.setView([lat, lon], key === "world" ? 4 : 6);
+            marker.openTooltip();
+          });
+        }
+      }
+    }
+
+    $("world-btn").onclick = () => drawAtlas("world");
+    $("india-btn").onclick = () => drawAtlas("india");
+    drawAtlas("world");
+
+    // Load mapping separately so the scanner can start even on slow internet.
+    const leaflet = document.createElement("script");
+    leaflet.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+    leaflet.onload = () => {
+      map = L.map("map", { scrollWheelZoom: false, minZoom: 2 });
+      markers = L.layerGroup().addTo(map);
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).on("tileerror", () => {
+        $("map-message").textContent = "Some map tiles could not load. The region list is available.";
+      }).addTo(map);
+      drawAtlas(activeView);
+    };
+    leaflet.onerror = () => {
+      $("map").hidden = true;
+      $("map-message").textContent = "Map unavailable. Select any region in the list.";
+    };
+    document.head.append(leaflet);
+
+    // ---------- Disease guide ----------
+    const guide = [
+      ["Brown Spot",
+       "Look for round or oval brown spots. Some have lighter centers.",
+       "Capture several spots and some surrounding leaf tissue."],
+      ["Leaf Blast",
+       "Lesions can be elongated with pointed ends, pale gray centers, and brown margins.",
+       "Photograph the leaf blade with the ends and edges of the lesions in focus."],
+      ["Neck Blast",
+       "Look for gray-brown discoloration around the neck below the grain head. An affected panicle may bend.",
+       "Include the grain head and its connection to the stem."],
+      ["Healthy",
+       "This class represents training photos labeled healthy. Visible tissue generally lacks the characteristic lesions described in this guide.",
+       "Choose an evenly lit view of the leaf surface and surrounding tissue."]
+    ];
+
+    for (const [name, description, photo] of guide) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = name;
+      button.onclick = () => {
+        for (const other of $("disease-tabs").children) {
+          other.setAttribute("aria-pressed", String(other === button));
+        }
+        $("disease-title").textContent = name;
+        $("disease-text").textContent = description;
+        $("disease-photo").textContent = photo;
+      };
+      $("disease-tabs").append(button);
+    }
+    $("disease-tabs").firstElementChild.click();
+
+    // ---------- Scanner ----------
+    let ready = false;
+    let previewUrl;
+    let firstResult = null;
+
+    async function jsonRequest(path, options) {
+      const response = await fetch(path, options);
+      const data = await response.json().catch(() => null);
+      if (!response.ok || data === null && path !== "/api/evaluation") {
+        throw new Error(data?.detail || `Request failed (${response.status}).`);
+      }
+      return data;
+    }
+
+    async function predict(file) {
+      if (file.size > 8 * 1024 * 1024) throw new Error("Choose a photo up to 8 MB.");
+      const data = await jsonRequest("/api/predict", { method: "POST", body: file });
+      if (!Array.isArray(data.scores) || data.scores.length < 2) {
+        throw new Error("The backend returned an incomplete prediction.");
+      }
+      return data;
+    }
+
+    function showHeat(enabled) {
+      $("heat").hidden = !enabled;
+      $("heat-note").hidden = !enabled;
+      $("heat-toggle").textContent = enabled ? "Hide heatmap" : "Show heatmap";
+      $("heat-toggle").setAttribute("aria-pressed", String(enabled));
+    }
+
+    function resetResult() {
+      firstResult = null;
+      $("result").hidden = true;
+      $("heat-toggle").hidden = true;
+      $("heat").replaceChildren();
+      $("second").value = "";
+      $("agreement").textContent = "";
+      showHeat(false);
+    }
+
+    $("photo").onchange = () => {
+      resetResult();
+      const file = $("photo").files[0];
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (file) {
+        previewUrl = URL.createObjectURL(file);
+        $("preview").src = previewUrl;
+      } else {
+        $("preview").removeAttribute("src");
+      }
+      $("stage").hidden = !file;
+      $("analyze").disabled = !ready || !file;
+      $("scan-message").textContent = file ? "Photo selected." : "Select a photo to begin.";
+    };
+
+    function renderResult(data) {
+      firstResult = data;
+      const [top, next] = data.scores;
+      const uncertain = data.uncertain ?? data.low_score ?? false;
+      $("result").hidden = false;
+      $("scan-message").textContent = `Analyzed using ${data.model || "Dense ANN"}.`;
+      $("prediction").textContent = `${uncertain ? "Possible match" : "Top match"} · ${top.label}`;
+      $("runner").textContent = `Runner-up · ${next.label}`;
+      $("guidance").hidden = !uncertain;
+      $("guidance").textContent = data.guidance || "Try another clear photo of the same plant.";
+
+      $("scores").replaceChildren();
+      for (const item of data.scores) {
+        const line = document.createElement("div");
+        line.className = "score-line";
+        const label = document.createElement("span");
+        const value = document.createElement("span");
+        label.textContent = item.label;
+        value.textContent = pct(item.score);
+        line.append(label, value);
+
+        const bar = document.createElement("progress");
+        bar.max = 1;
+        bar.value = item.score;
+        bar.setAttribute("aria-label", `${item.label} score`);
+        $("scores").append(line, bar);
+      }
+
+      if (Array.isArray(data.heatmap) && data.heatmap.length === 16) {
+        const peak = Math.max(...data.heatmap);
+        if (peak > 0) {
+          for (const drop of data.heatmap) {
+            const tile = document.createElement("span");
+            tile.style.background = `rgba(236, 75, 24, ${0.72 * drop / peak})`;
+            $("heat").append(tile);
+          }
+          $("heat-toggle").hidden = false;
+        }
+      }
+
+      $("cases").replaceChildren();
+      const similar = data.similar || [];
+      $("case-section").hidden = !similar.length;
+      for (const item of similar) {
+        const figure = document.createElement("figure");
+        const img = document.createElement("img");
+        img.src = item.image;
+        img.alt = `Training photo labeled ${item.label}`;
+        const caption = document.createElement("figcaption");
+        caption.textContent = `${item.label} · similarity ${item.similarity.toFixed(2)}`;
+        figure.append(img, caption);
+        $("cases").append(figure);
+      }
+    }
+
+    $("heat-toggle").onclick = () => showHeat($("heat").hidden);
+
+    $("scan-form").onsubmit = async event => {
+      event.preventDefault();
+      const file = $("photo").files[0];
+      if (!file || !ready) return;
+      resetResult();
+      $("analyze").disabled = true;
+      $("photo").disabled = true;
+      $("scan-message").textContent = "Analyzing your photo…";
+      try {
+        renderResult(await predict(file));
+      } catch (error) {
+        $("scan-message").textContent = error.message;
+      } finally {
+        $("photo").disabled = false;
+        $("analyze").disabled = false;
+      }
+    };
+
+    $("second").onchange = async () => {
+      const file = $("second").files[0];
+      const first = firstResult;
+      if (!file || !first) return;
+      $("second").disabled = true;
+      $("agreement").textContent = "Checking second angle…";
+      try {
+        const other = await predict(file);
+        if (firstResult !== first) return;
+        const a = first.scores[0].label;
+        const b = other.scores[0].label;
+        const uncertain = first.uncertain || first.low_score || other.uncertain || other.low_score;
+        $("agreement").textContent = a === b
+          ? `Both photos favor ${a}.${uncertain ? " At least one result was uncertain." : ""}`
+          : `The views disagree. First photo: ${a}. Second photo: ${b}.`;
+      } catch (error) {
+        if (firstResult === first) $("agreement").textContent = error.message;
+      } finally {
+        $("second").disabled = false;
+      }
+    };
+
+    // ---------- Model evaluation ----------
+    function buildTable(headers, rows, activeModel) {
+      const table = document.createElement("table");
+      const heading = table.createTHead().insertRow();
+      for (const title of headers) {
+        const cell = document.createElement("th");
+        cell.scope = "col";
+        cell.textContent = title;
+        heading.append(cell);
+      }
+      const body = table.createTBody();
+      for (const values of rows) {
+        const row = body.insertRow();
+        if (values[0] === activeModel) row.className = "winner";
+        for (const value of values) row.insertCell().textContent = value;
+      }
+      return table;
+    }
+
+    async function loadStatus() {
+      try {
+        const status = await jsonRequest("/api/status");
+        ready = status.ready;
+        $("status").textContent = ready
+          ? `Model ready · ${status.model || "Dense ANN"}`
+          : "Training required";
+        $("analyze").disabled = !ready || !$("photo").files.length;
+      } catch {
+        $("status").textContent = "Backend unavailable";
+      }
+    }
+
+    async function loadEvaluation() {
+      try {
+        const report = await jsonRequest("/api/evaluation");
+        if (!report) {
+          $("eval-note").textContent = "Train the advanced models to display their comparison here.";
+          return;
+        }
+        $("eval-note").textContent =
+          `${report.test_images} held-out photos. Active model: ${report.active_model}.`;
+        const rows = report.comparison.map(item => [
+          item.model, pct(item.validation_macro_f1), pct(item.accuracy),
+          pct(item.macro_precision), pct(item.macro_f1), pct(item.leaf_blast_recall)
+        ]);
+        $("comparison").append(buildTable(
+          ["Model", "Validation macro F1", "Test accuracy", "Macro precision",
+           "Test macro F1", "Leaf Blast recall"], rows, report.active_model
+        ));
+        $("matrix").append(buildTable(
+          ["Actual ↓ / Predicted →", ...report.labels],
+          report.confusion_matrix.map((row, i) => [report.labels[i], ...row])
+        ));
+        $("matrix-panel").hidden = false;
+      } catch {
+        $("eval-note").textContent =
+          "Evaluation results are unavailable. Check that the advanced app.py is running.";
+      }
+    }
+
+    loadStatus();
+    loadEvaluation();
+  </script>
+</body>
+</html>
