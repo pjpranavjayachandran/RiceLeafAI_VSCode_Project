@@ -1,0 +1,24 @@
+:root { color-scheme: light; font-family: system-ui, sans-serif; color: #1b3429; background: #f4f6ee; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1020px; margin: auto; padding: 32px clamp(18px, 5vw, 60px); }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-bottom: 1px solid #d5ded1; padding-bottom: 22px; }
+.brand { font-weight: 750; font-size: 1.2rem; }
+#status { font-size: .9rem; }
+h1 { font: 500 clamp(3rem, 8vw, 5rem)/1.03 Georgia, serif; letter-spacing: -.055em; margin: 52px 0 12px; }
+.intro { line-height: 1.65; max-width: 53ch; }
+.workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 32px; }
+section { min-width: 0; background: #fff; border: 1px solid #d5ded1; border-radius: 16px; padding: 24px; }
+h2 { font-size: 1.15rem; margin: 0 0 22px; }
+form { display: grid; gap: 12px; }
+input { width: 100%; }
+input::file-selector-button { color: #1b3429; background: #eaf0e4; border: 1px solid #bfccba; border-radius: 7px; padding: 8px; margin-right: 8px; }
+button { color: white; background: #234d36; border: 0; border-radius: 8px; padding: 12px; font: inherit; font-weight: 650; cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+#preview { width: 100%; height: 245px; object-fit: contain; background: #edf2e9; border-radius: 8px; }
+#message { line-height: 1.55; }
+.score { display: grid; grid-template-columns: 1fr auto; gap: 5px 8px; margin: 12px 0; }
+progress { grid-column: 1 / -1; width: 100%; accent-color: #397453; }
+.foot, small { color: #465b4e; }
+.foot { font-size: .875rem; line-height: 1.6; }
+@media (max-width: 650px) { .workspace { grid-template-columns: 1fr; } h1 { margin-top: 32px; } }

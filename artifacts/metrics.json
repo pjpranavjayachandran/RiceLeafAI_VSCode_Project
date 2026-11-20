@@ -1,0 +1,122 @@
+{
+  "seed": 42,
+  "class_counts": {
+    "Brown Spot": 613,
+    "Healthy": 1488,
+    "Leaf Blast": 977,
+    "Neck Blast": 1000
+  },
+  "invalid_images": 0,
+  "exact_duplicates_removed": 0,
+  "best_ann_epoch": 29,
+  "splits": {
+    "train": {
+      "Leaf Blast": 586,
+      "Neck Blast": 600,
+      "Healthy": 892,
+      "Brown Spot": 368
+    },
+    "validation": {
+      "Neck Blast": 200,
+      "Healthy": 298,
+      "Brown Spot": 122,
+      "Leaf Blast": 196
+    },
+    "test": {
+      "Leaf Blast": 195,
+      "Neck Blast": 200,
+      "Healthy": 298,
+      "Brown Spot": 123
+    }
+  },
+  "models": {
+    "ann": {
+      "validation_macro_f1": 0.7393442778716988,
+      "test_accuracy": 0.7352941176470589,
+      "test_macro_f1": 0.7175025305807418,
+      "test_classification_report": {
+        "Brown Spot": {
+          "precision": 0.6446280991735537,
+          "recall": 0.6341463414634146,
+          "f1-score": 0.639344262295082,
+          "support": 123.0
+        },
+        "Healthy": {
+          "precision": 0.7074626865671642,
+          "recall": 0.7953020134228188,
+          "f1-score": 0.7488151658767772,
+          "support": 298.0
+        },
+        "Leaf Blast": {
+          "precision": 0.546583850931677,
+          "recall": 0.4512820512820513,
+          "f1-score": 0.4943820224719101,
+          "support": 195.0
+        },
+        "Neck Blast": {
+          "precision": 0.9899497487437185,
+          "recall": 0.985,
+          "f1-score": 0.9874686716791979,
+          "support": 200.0
+        },
+        "accuracy": 0.7352941176470589,
+        "macro avg": {
+          "precision": 0.7221560963540283,
+          "recall": 0.7164326015420712,
+          "f1-score": 0.7175025305807418,
+          "support": 816.0
+        },
+        "weighted avg": {
+          "precision": 0.7287830116124789,
+          "recall": 0.7352941176470589,
+          "f1-score": 0.7300055054061725,
+          "support": 816.0
+        }
+      }
+    },
+    "random_forest": {
+      "validation_macro_f1": 0.7326807082431457,
+      "test_accuracy": 0.7475490196078431,
+      "test_macro_f1": 0.6997431740883988,
+      "test_classification_report": {
+        "Brown Spot": {
+          "precision": 0.7466666666666667,
+          "recall": 0.45528455284552843,
+          "f1-score": 0.5656565656565656,
+          "support": 123.0
+        },
+        "Healthy": {
+          "precision": 0.6666666666666666,
+          "recall": 0.9463087248322147,
+          "f1-score": 0.782246879334258,
+          "support": 298.0
+        },
+        "Leaf Blast": {
+          "precision": 0.6886792452830188,
+          "recall": 0.37435897435897436,
+          "f1-score": 0.4850498338870432,
+          "support": 195.0
+        },
+        "Neck Blast": {
+          "precision": 0.9386792452830188,
+          "recall": 0.995,
+          "f1-score": 0.9660194174757282,
+          "support": 200.0
+        },
+        "accuracy": 0.7475490196078431,
+        "macro avg": {
+          "precision": 0.7601729559748428,
+          "recall": 0.6927380630091794,
+          "f1-score": 0.6997431740883988,
+          "support": 816.0
+        },
+        "weighted avg": {
+          "precision": 0.7506555987174743,
+          "recall": 0.7475490196078431,
+          "f1-score": 0.7236200106868695,
+          "support": 816.0
+        }
+      }
+    }
+  }
+}
