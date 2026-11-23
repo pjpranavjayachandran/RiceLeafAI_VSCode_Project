@@ -5,7 +5,6 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import joblib
@@ -17,15 +16,8 @@ ROOT = Path(__file__).resolve().parent
 MODEL = Path(os.getenv("RICE_MODEL_PATH", ROOT / "artifacts" / "rice_ann.joblib"))
 MAX_BYTES = 8 * 1024 * 1024
 app = FastAPI(title="RiceLeaf AI")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["https://pjpranavjayachandran.github.io"],
-    allow_methods=["POST"],
-    allow_headers=["Content-Type"],
-)
-
 app.mount("/assets", StaticFiles(directory=ROOT / "web"), name="assets")
+
 
 @lru_cache(maxsize=1)
 def model():
