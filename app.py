@@ -26,7 +26,7 @@ def model():
 
 @app.get("/", include_in_schema=False)
 def index():
-    return FileResponse(ROOT / "web" / "index(4).html")
+    return FileResponse(ROOT / "web" / "index.html")
 
 
 @app.get("/api/status")
