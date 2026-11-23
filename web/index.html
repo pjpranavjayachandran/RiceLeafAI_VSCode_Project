@@ -1,642 +1,630 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>RiceLeaf AI | Rice Disease Explorer</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RiceLeaf AI — Rice Disease Detection</title>
+<meta name="description" content="Deep-learning rice leaf disease detection with an interactive 3D map of rice cultivation in India and the world.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/globe.gl"></script>
 
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+/* =====================================================
+   EDIT YOUR PROJECT DETAILS IN THE <script> CONFIG BELOW
+   ===================================================== */
+:root{
+  --bg:#07120d; --bg2:#0d1f17; --card:rgba(255,255,255,.05); --border:rgba(255,255,255,.1);
+  --text:#e8f5ec; --muted:#94b0a0; --accent:#7ee081; --accent2:#f5c451; --danger:#ff6b6b;
+  --glow:0 0 40px rgba(126,224,129,.25);
+}
+:root[data-theme="light"]{
+  --bg:#f4faf5; --bg2:#e4f2e7; --card:rgba(255,255,255,.85); --border:rgba(0,0,0,.08);
+  --text:#0f2418; --muted:#52695b; --accent:#1f9d4a; --accent2:#c58a00; --danger:#d93636;
+  --glow:0 10px 40px rgba(31,157,74,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:Inter,sans-serif;line-height:1.6;overflow-x:hidden;transition:background .4s}
+h1,h2,h3,h4{font-family:'Space Grotesk',sans-serif;line-height:1.15}
+a{color:inherit;text-decoration:none}
+section{padding:96px 6vw;position:relative}
+.container{max-width:1200px;margin:auto}
+.eyebrow{color:var(--accent);font-weight:600;letter-spacing:.15em;text-transform:uppercase;font-size:.8rem;margin-bottom:12px}
+h2{font-size:clamp(2rem,4vw,3rem);margin-bottom:16px}
+.lead{color:var(--muted);max-width:700px;margin-bottom:48px;font-size:1.05rem}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:24px;backdrop-filter:blur(14px)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 26px;border-radius:999px;border:1px solid var(--border);background:var(--card);color:var(--text);font-weight:600;cursor:pointer;font-size:1rem;transition:.25s}
+.btn:hover{transform:translateY(-3px);box-shadow:var(--glow)}
+.btn.primary{background:linear-gradient(135deg,var(--accent),#3fb86a);color:#05150b;border:none}
+.btn.small{padding:8px 16px;font-size:.85rem}
+.reveal{opacity:0;transform:translateY(40px);transition:.8s cubic-bezier(.2,.7,.2,1)}
+.reveal.show{opacity:1;transform:none}
 
-  <style>
-    :root {
-      --forest: #153d30;
-      --leaf: #347351;
-      --lime: #dfeda5;
-      --paper: #f3f5ec;
-      --white: #fff;
-      --ink: #19352a;
-      --muted: #51665b;
-      --line: #d8e1d4;
-      color-scheme: light;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      color: var(--ink);
-      background: var(--paper);
-    }
+/* progress + nav */
+#scrollbar{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0;z-index:200}
+nav{position:fixed;top:0;width:100%;z-index:100;display:flex;justify-content:space-between;align-items:center;padding:14px 6vw;backdrop-filter:blur(16px);background:color-mix(in srgb,var(--bg) 70%,transparent);border-bottom:1px solid var(--border)}
+.logo{font-family:'Space Grotesk';font-weight:700;font-size:1.3rem;display:flex;gap:8px;align-items:center}
+.nav-links{display:flex;gap:26px;align-items:center}
+.nav-links a{color:var(--muted);font-size:.92rem;transition:.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--accent)}
+.burger{display:none;background:none;border:none;color:var(--text);font-size:1.6rem;cursor:pointer}
+#themeBtn{background:var(--card);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:1.1rem}
 
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body { margin: 0; }
-    [hidden] { display: none !important; }
-    a { color: var(--forest); }
-    button, input { font: inherit; }
-    button, summary { cursor: pointer; }
-    :focus-visible { outline: 3px solid #ab7926; outline-offset: 3px; }
-    .wrap { width: min(1120px, calc(100% - 32px)); margin: auto; }
+/* hero */
+#hero{min-height:100vh;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding-top:120px;background:radial-gradient(ellipse at 20% 20%,rgba(126,224,129,.15),transparent 50%),radial-gradient(ellipse at 90% 80%,rgba(245,196,81,.12),transparent 50%)}
+#particles{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.hero-text{position:relative;z-index:2}
+.hero-text h1{font-size:clamp(2.6rem,6vw,4.8rem);margin-bottom:20px}
+.grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero-text p{color:var(--muted);font-size:1.15rem;max-width:560px;margin-bottom:32px}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
+.badge{padding:6px 14px;border-radius:999px;background:var(--card);border:1px solid var(--border);font-size:.8rem;color:var(--muted)}
+.hero-visual{position:relative;z-index:2;perspective:1000px;display:flex;justify-content:center}
+#tiltCard{width:min(380px,90%);aspect-ratio:3/4;border-radius:28px;background:linear-gradient(160deg,rgba(126,224,129,.25),rgba(0,0,0,.2));border:1px solid var(--border);box-shadow:var(--glow);transform-style:preserve-3d;transition:transform .15s;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}
+#tiltCard svg{width:70%;transform:translateZ(60px);filter:drop-shadow(0 20px 20px rgba(0,0,0,.4));animation:sway 5s ease-in-out infinite}
+@keyframes sway{50%{transform:translateZ(60px) rotate(4deg)}}
+.scan{position:absolute;left:0;width:100%;height:3px;background:var(--accent);box-shadow:0 0 20px var(--accent);animation:scan 3s linear infinite}
+@keyframes scan{0%{top:0}100%{top:100%}}
+.float-chip{position:absolute;transform:translateZ(90px);background:rgba(0,0,0,.65);color:#fff;padding:8px 14px;border-radius:12px;font-size:.8rem;border:1px solid rgba(255,255,255,.2)}
 
-    header, .actions, nav, .tabs, .score-line {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
+.stat{text-align:center}
+.stat b{font-family:'Space Grotesk';font-size:2.8rem;color:var(--accent);display:block}
+.stat span{color:var(--muted);font-size:.9rem}
 
-    header { justify-content: space-between; padding: 20px 0; }
-    .brand { font-size: 1.35rem; font-weight: 750; letter-spacing: -.04em; }
-    #status { color: var(--muted); font-size: .9rem; }
+/* detector */
+#detect .grid{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+#drop{border:2px dashed var(--border);border-radius:20px;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;transition:.3s;position:relative;overflow:hidden;padding:20px}
+#drop.over,#drop:hover{border-color:var(--accent);background:rgba(126,224,129,.07)}
+#drop img,#drop video{max-width:100%;max-height:300px;border-radius:14px}
+#drop .ico{font-size:3rem}
+.row{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap}
+.samples img{width:64px;height:64px;border-radius:12px;object-fit:cover;cursor:pointer;border:2px solid transparent}
+.samples img:hover{border-color:var(--accent)}
+#result{min-height:320px}
+.placeholder{color:var(--muted);text-align:center;margin-top:90px}
+.verdict{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+.verdict h3{font-size:1.7rem}
+.sev{padding:4px 12px;border-radius:999px;font-size:.8rem;font-weight:600}
+.sev.low{background:rgba(126,224,129,.2);color:var(--accent)}
+.sev.mid{background:rgba(245,196,81,.2);color:var(--accent2)}
+.sev.high{background:rgba(255,107,107,.2);color:var(--danger)}
+.ring{--p:0;width:110px;height:110px;border-radius:50%;background:conic-gradient(var(--accent) calc(var(--p)*1%),var(--border) 0);display:grid;place-items:center;transition:.8s}
+.ring::before{content:attr(data-v);width:84px;height:84px;border-radius:50%;background:var(--bg2);display:grid;place-items:center;font-family:'Space Grotesk';font-weight:700;font-size:1.3rem}
+.bars{margin:18px 0}
+.bar{margin-bottom:10px;font-size:.85rem}
+.bar .track{height:8px;background:var(--border);border-radius:9px;overflow:hidden;margin-top:4px}
+.bar .fill{height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width 1s}
+.tabs{display:flex;gap:8px;margin:14px 0 8px}
+.tab{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:.85rem}
+.tab.on{background:var(--accent);color:#05150b;border-color:var(--accent)}
+.tabbody{color:var(--muted);font-size:.92rem}
+.tabbody ul{padding-left:20px}
+.spinner{width:44px;height:44px;border:4px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:90px auto 12px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#history{display:flex;gap:12px;overflow-x:auto;margin-top:20px;padding-bottom:6px}
+.hist{min-width:150px;font-size:.8rem}
+.hist img{width:100%;height:80px;object-fit:cover;border-radius:10px}
 
-    .hero {
-      padding: clamp(28px, 6vw, 68px);
-      color: #f9fbef;
-      border-radius: 24px;
-      background: radial-gradient(ellipse at 100% 0, #508264, transparent 55%), #12392b;
-    }
+/* library */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px}
+.flip{perspective:900px;height:260px;cursor:pointer}
+.flip-in{position:relative;width:100%;height:100%;transition:transform .7s;transform-style:preserve-3d}
+.flip:hover .flip-in,.flip.tap .flip-in{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;border-radius:20px;padding:22px;border:1px solid var(--border);background:var(--card);display:flex;flex-direction:column;justify-content:center;gap:8px}
+.face.back{transform:rotateY(180deg);background:linear-gradient(160deg,rgba(126,224,129,.18),var(--bg2));font-size:.88rem;justify-content:flex-start;overflow:auto}
+.face .em{font-size:2.6rem}
 
-    h1, h2, .verdict {
-      font-family: Georgia, serif;
-      font-weight: 500;
-      letter-spacing: -.045em;
-    }
+/* globe */
+#maps .stage{position:relative;border-radius:24px;overflow:hidden;border:1px solid var(--border);background:#000;height:640px}
+#globeEl{width:100%;height:100%}
+.gctrl{position:absolute;top:16px;left:16px;display:flex;gap:8px;flex-wrap:wrap;z-index:5}
+.gctrl .btn{background:rgba(0,0,0,.6);color:#fff;padding:9px 16px;font-size:.85rem}
+.gctrl .btn.on{background:var(--accent);color:#05150b}
+.ginfo{position:absolute;right:16px;bottom:16px;width:min(310px,80%);z-index:5;background:rgba(0,0,0,.72);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:16px;backdrop-filter:blur(10px);font-size:.85rem}
+.ginfo h4{margin-bottom:6px;color:var(--accent)}
+.legend{position:absolute;left:16px;bottom:16px;z-index:5;background:rgba(0,0,0,.6);color:#ddd;border-radius:12px;padding:10px 14px;font-size:.75rem}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+.rank{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-top:28px}
+.rank li{list-style:none;display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.9rem;cursor:pointer}
+.rank li:hover{color:var(--accent)}
 
-    h1 { font-size: clamp(2.8rem, 7vw, 5.8rem); line-height: 1; margin: 0; }
-    h2 { font-size: clamp(1.9rem, 4vw, 3rem); margin: 0 0 10px; }
-    h3 { margin: 0 0 8px; }
-    p { line-height: 1.55; }
-    .hero p { max-width: 55ch; color: #e0eadb; }
-    .hero a, .primary, .tabs button, nav a, .secondary {
-      display: inline-block;
-      border-radius: 999px;
-      padding: 10px 16px;
-      text-decoration: none;
-      font-weight: 650;
-    }
-    .hero a, .secondary { background: var(--lime); color: var(--forest); border: 0; }
-    .primary { background: var(--forest); color: white; border: 0; }
-    button:disabled { opacity: .5; cursor: default; }
-    nav { margin: 18px 0; }
-    nav a, .tabs button {
-      background: white; color: var(--forest); border: 1px solid var(--line);
-    }
-    .tabs button[aria-pressed="true"] { background: var(--forest); color: white; }
+/* pipeline & charts */
+.pipe{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.step{text-align:center;position:relative}
+.step .n{width:44px;height:44px;border-radius:50%;background:var(--accent);color:#05150b;font-weight:700;display:grid;place-items:center;margin:0 auto 10px}
+.step p{color:var(--muted);font-size:.85rem}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px}
+.cm{display:grid;gap:3px;margin-top:10px}
+.cm div{padding:10px 4px;text-align:center;font-size:.72rem;border-radius:6px}
+.tech{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
 
-    .card {
-      background: white;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: clamp(18px, 3vw, 32px);
-      margin-bottom: 16px;
-      scroll-margin-top: 12px;
-    }
-    .muted, small { color: var(--muted); }
-    .two { display: grid; grid-template-columns: 1.25fr 1fr; gap: 18px; }
-    .two > * { min-width: 0; }
-    .soft { background: #f0f5e9; border-radius: 13px; padding: 15px; }
-    .tabs, .actions { margin: 12px 0; }
-    #map { height: 340px; border-radius: 14px; background: #e5edde; isolation: isolate; }
-    #regions { display: grid; gap: 6px; }
-    #regions button {
-      padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line);
-      background: white; text-align: left; color: var(--ink);
-    }
-    #regions button[aria-pressed="true"] { background: var(--lime); }
+/* faq / footer */
+details{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 20px;margin-bottom:12px}
+summary{cursor:pointer;font-weight:600}
+details p{color:var(--muted);margin-top:10px}
+footer{text-align:center;padding:50px 6vw;color:var(--muted);border-top:1px solid var(--border)}
+#toTop{position:fixed;right:20px;bottom:20px;width:46px;height:46px;border-radius:50%;border:none;background:var(--accent);color:#05150b;font-size:1.2rem;cursor:pointer;opacity:0;pointer-events:none;transition:.3s;z-index:90}
+#toTop.show{opacity:1;pointer-events:auto}
+#toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,100px);background:var(--accent);color:#05150b;padding:12px 22px;border-radius:12px;font-weight:600;transition:.4s;z-index:300}
+#toast.show{transform:translate(-50%,0)}
 
-    .upload {
-      display: grid; gap: 9px; padding: 16px;
-      border: 1px dashed #87a48b; border-radius: 14px; background: #f5f8ef;
-    }
-    input[type=file] { width: 100%; max-width: 100%; }
-    .stage {
-      position: relative; display: table; max-width: 100%;
-      margin: 14px auto; overflow: hidden; border-radius: 12px;
-    }
-    #preview { display: block; max-width: 100%; max-height: 420px; }
-    #heat {
-      display: grid; position: absolute; inset: 0;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(4, 1fr); pointer-events: none;
-    }
-    .verdict { font-size: 2rem; margin: 6px 0; }
-    .score-line { justify-content: space-between; margin-top: 8px; }
-    progress { width: 100%; accent-color: var(--leaf); }
-    .warning { background: #fff3d7; padding: 12px; border-radius: 10px; }
-    .examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
-    figure { margin: 0; padding: 6px; background: #f0f4eb; border-radius: 8px; }
-    figure img { width: 100%; height: 85px; object-fit: contain; }
-    figcaption { font-size: .8rem; }
-    details { margin-top: 14px; }
-    summary { font-weight: 650; }
-    .scroll { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: .9rem; }
-    th, td { text-align: left; padding: 9px; border-bottom: 1px solid var(--line); }
-    th { white-space: nowrap; }
-    .winner { background: #edf5db; }
-    footer { padding: 10px 0 28px; }
-    @media (max-width: 720px) {
-      .two { grid-template-columns: 1fr; }
-      #map { height: 285px; }
-      nav a { padding: 7px 11px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-    }
-  </style>
+@media(max-width:900px){
+  #hero,#detect .grid,.charts{grid-template-columns:1fr}
+  .nav-links{position:fixed;top:64px;right:-100%;flex-direction:column;background:var(--bg2);width:70%;height:100vh;padding:30px;transition:.4s}
+  .nav-links.open{right:0}
+  .burger{display:block}
+  #maps .stage{height:520px}
+}
+@media (min-width: 901px) {
+  body {
+    zoom: 1.15;
+  }
+}
+</style>
 </head>
-
 <body>
-  <div class="wrap">
-    <header>
-      <span class="brand">RiceLeaf AI</span>
-      <span id="status" role="status">Checking model…</span>
-    </header>
+<div id="scrollbar"></div>
 
-    <section class="hero">
-      <h1>Read the rice leaf.</h1>
-      <p>Explore where rice grows, learn to recognize disease symptoms,
-         and use a trained model to examine your own rice plant photo.</p>
-      <a href="#scanner">Scan a photo ↓</a>
-    </section>
-
-    <nav aria-label="Page sections">
-      <a href="#atlas">Rice atlas</a>
-      <a href="#guide">Disease guide</a>
-      <a href="#solution">Our solution</a>
-      <a href="#scanner">Scanner</a>
-      <a href="#evaluation">Evaluation</a>
-    </nav>
-
-    <main>
-      <section id="atlas" class="card">
-        <h2>Where rice grows</h2>
-        <p class="muted">Choose a view, then select a region. Circle size represents
-          rice production within the selected view.</p>
-        <div class="tabs">
-          <button type="button" id="world-btn" aria-pressed="true">World</button>
-          <button type="button" id="india-btn" aria-pressed="false">India</button>
-        </div>
-        <p id="map-caption"></p>
-        <div class="two">
-          <div id="map" aria-label="Rice production map"></div>
-          <div>
-            <div id="regions"></div>
-            <p id="region-detail" class="soft" aria-live="polite"></p>
-          </div>
-        </div>
-        <p id="map-message" class="muted" role="status"></p>
-        <small>Markers represent approximate locations. Figures describe production
-          volume. Select World or India again to reset the view.</small>
-      </section>
-
-      <section id="guide" class="card">
-        <h2>Disease field guide</h2>
-        <p class="muted">Select a class to inspect its visual clues and choose a camera angle.</p>
-        <div id="disease-tabs" class="tabs"></div>
-        <div class="two soft" aria-live="polite">
-          <div><h3 id="disease-title"></h3><p id="disease-text"></p></div>
-          <div><strong>What to photograph</strong><p id="disease-photo"></p></div>
-        </div>
-      </section>
-
-      <section id="solution" class="card">
-        <h2>From photo to prediction</h2>
-        <p>The scanner resizes a photo to 64 × 64 pixels and divides it into 16 tiles.
-          Each tile contributes colour and edge measurements, giving the classifier
-          224 features. It compares the image with four rice classes.</p>
-        <details>
-          <summary>How do we evaluate the solution?</summary>
-          <p>Training images teach the models. Validation macro F1 helps select a
-            model while giving each class equal weight. A held-out test set measures
-            accuracy, macro precision, and recall. The confusion matrix shows which
-            diseases the selected model confuses.</p>
-        </details>
-        <p><a href="#scanner">Try the scanner ↓</a></p>
-      </section>
-
-      <section id="scanner" class="card">
-        <h2>Scan a rice plant</h2>
-        <div class="two">
-          <div>
-            <form id="scan-form">
-              <label class="upload">
-                <strong>Choose a rice photo</strong>
-                <input id="photo" type="file" accept="image/jpeg,image/png,image/webp" required>
-                <small>JPEG, PNG or WebP · up to 8 MB</small>
-              </label>
-              <div id="stage" class="stage" hidden>
-                <img id="preview" alt="Selected rice plant photo">
-                <div id="heat" hidden aria-hidden="true"></div>
-              </div>
-              <div class="actions">
-                <button id="analyze" class="primary" disabled>Analyze photo</button>
-                <button id="heat-toggle" class="secondary" type="button"
-                        aria-pressed="false" hidden>Show heatmap</button>
-              </div>
-              <small id="heat-note" hidden>
-                Warmer tiles mark larger drops in the top class score when that
-                tile’s features are replaced with their training averages.
-              </small>
-            </form>
-          </div>
-          <div>
-            <p id="scan-message" class="muted" role="status">Select a photo to begin.</p>
-            <div id="result" hidden>
-              <h3 id="prediction" class="verdict"></h3>
-              <p id="runner"></p>
-              <p id="guidance" class="warning" hidden></p>
-              <div id="scores"></div>
-              <small>Percentages are relative model scores across the supported classes.</small>
-
-              <section id="case-section" hidden>
-                <h3 style="margin-top:18px">Similar training photos</h3>
-                <div id="cases" class="examples"></div>
-              </section>
-
-              <details>
-                <summary>Compare a second angle</summary>
-                <p>Choose a second photo of the same plant.</p>
-                <input id="second" type="file" accept="image/jpeg,image/png,image/webp">
-                <p id="agreement" role="status"></p>
-              </details>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="evaluation" class="card">
-        <h2>Model evaluation</h2>
-        <p id="eval-note" class="muted">Loading saved results…</p>
-        <div id="comparison" class="scroll"></div>
-        <details id="matrix-panel" hidden>
-          <summary>Explore the confusion matrix</summary>
-          <p>Read across a row to see where photos from one actual class were assigned.</p>
-          <div id="matrix" class="scroll"></div>
-        </details>
-      </section>
-    </main>
-
-    <footer>
-      <details>
-        <summary>Data and references</summary>
-        <ul>
-          <li><a href="https://apps.fas.usda.gov/psdonline/circulars/grain.pdf">
-            USDA Foreign Agricultural Service, world rice production</a> · 2024/25.</li>
-          <li><a href="https://www.indiabudget.gov.in/budget2025-26/economicsurvey/doc/Statistical-Appendix-in-English.pdf">
-            Economic Survey 2024–25, Statistical Appendix</a> · Table 1.18,
-            Indian state production in 2023–24.</li>
-          <li><a href="https://www.knowledgebank.irri.org/images/docs/diagnostic-of-common-diseases-of-rice.pdf">
-            IRRI, Diagnosis of Common Diseases of Rice</a>.</li>
-        </ul>
-      </details>
-    </footer>
+<nav>
+  <a href="#hero" class="logo">🌾 <span id="brand">RiceLeaf AI</span></a>
+  <div class="nav-links" id="links">
+    <a href="#stats">Impact</a><a href="#detect">Detector</a><a href="#library">Diseases</a>
+    <a href="#maps">3D Maps</a><a href="#model">Model</a><a href="#faq">FAQ</a>
+    <button id="themeBtn" title="Toggle theme">🌙</button>
   </div>
+  <button class="burger" id="burger">☰</button>
+</nav>
 
-  <script>
-    const $ = id => document.getElementById(id);
-    const pct = value => `${(value * 100).toFixed(1)}%`;
+<!-- HERO -->
+<section id="hero">
+  <canvas id="particles"></canvas>
+  <div class="hero-text">
+    <div class="eyebrow">Deep learning · Computer vision · Agriculture</div>
+    <h1>Check your <span class="grad">rice plant photo.</span></h1>
+    <p>Upload a leaf or panicle photo to compare four rice health classes. The trained neural network compares colour and edge patterns.</p>
+    <div class="hero-btns">
+      <a href="#detect" class="btn primary">🔬 Try the detector</a>
+      <a href="#maps" class="btn">🌍 Explore 3D maps</a>
+    </div>
+    <div class="badges" id="heroBadges"></div>
+  </div>
+  <div class="hero-visual">
+    <div id="tiltCard">
+      <div class="scan"></div>
+      <svg viewBox="0 0 200 260" fill="none">
+        <path d="M100 250 C100 160 90 90 40 20" stroke="#7ee081" stroke-width="6" stroke-linecap="round"/>
+        <path d="M100 250 C105 150 120 80 170 30" stroke="#5fc96a" stroke-width="6" stroke-linecap="round"/>
+        <path d="M100 250 C98 170 100 100 100 10" stroke="#9af09d" stroke-width="7" stroke-linecap="round"/>
+        <circle cx="70" cy="70" r="7" fill="#b5651d"/><circle cx="130" cy="95" r="5" fill="#b5651d"/><circle cx="98" cy="140" r="6" fill="#d9a441"/>
+        <g fill="#f5c451"><ellipse cx="100" cy="14" rx="5" ry="10"/><ellipse cx="112" cy="26" rx="5" ry="10" transform="rotate(25 112 26)"/><ellipse cx="88" cy="26" rx="5" ry="10" transform="rotate(-25 88 26)"/></g>
+      </svg>
+      <div class="float-chip" style="top:14%;left:6%">🟤 Brown Spot</div>
+      <div class="float-chip" style="bottom:12%;right:6%">🌾 Rice plant</div>
+    </div>
+  </div>
+</section>
 
-    // ---------- Rice atlas ----------
-    const atlas = {
-      world: {
-        caption: "Selected major producers · 2024–25 · million tonnes of milled rice",
-        center: [22, 55], zoom: 2,
-        rows: [
-          ["India", 150.184, 22.6, 79.4],
-          ["China", 145.275, 33.7, 108.0],
-          ["Bangladesh", 36.600, 23.8, 90.3],
-          ["Indonesia", 34.100, -6.2, 111.0],
-          ["Vietnam", 26.850, 15.6, 107.7]
-        ]
-      },
-      india: {
-        caption: "Three largest producing states · 2023–24 · million tonnes of rice",
-        center: [23.8, 81.8], zoom: 4,
-        rows: [
-          ["Telangana", 16.87, 18.1, 79.0, "12.24%"],
-          ["Uttar Pradesh", 15.99, 26.8, 80.9, "11.60%"],
-          ["West Bengal", 15.69, 23.5, 87.9, "11.38%"]
-        ]
-      }
-    };
+<!-- STATS -->
+<section id="stats">
+  <div class="container">
+    <div class="stats card reveal" id="statGrid"></div>
+  </div>
+</section>
 
-    let map, markers, activeView = "world";
+<!-- DETECTOR -->
+<section id="detect">
+  <div class="container">
+    <div class="eyebrow reveal">Live demo</div>
+    <h2 class="reveal">Analyse a rice photo</h2>
+    <p class="lead reveal">Drag &amp; drop an image, pick a file, use your camera, or try a sample. <span id="modeNote"></span></p>
+    <div class="grid reveal">
+      <div class="card">
+        <div id="drop">
+          <div class="ico">📷</div>
+          <h3>Drop a rice leaf image here</h3>
+          <p style="color:var(--muted)">or click to browse · JPG / PNG</p>
+        </div>
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="row">
+          <button class="btn small" id="camBtn">🎥 Use camera</button>
+          <button class="btn small" id="snapBtn" style="display:none">📸 Capture</button>
+          <button class="btn small" id="clearBtn">🗑 Clear</button>
+          <button class="btn primary small" id="runBtn">⚡ Analyze</button>
+        </div>
+        <p style="margin-top:14px;color:var(--muted);font-size:.85rem">Quick samples (generated)</p>
+        <div class="row samples" id="samples"></div>
+      </div>
+      <div class="card" id="result"><div class="placeholder">🌱<br>Results will appear here</div></div>
+    </div>
+    <h3 style="margin-top:40px" class="reveal">Recent scans</h3>
+    <div id="history"><span style="color:var(--muted)">No scans yet.</span></div>
+  </div>
+</section>
 
-    function drawAtlas(key) {
-      activeView = key;
-      const view = atlas[key];
-      $("world-btn").setAttribute("aria-pressed", String(key === "world"));
-      $("india-btn").setAttribute("aria-pressed", String(key === "india"));
-      $("map-caption").textContent = view.caption;
-      $("regions").replaceChildren();
-      $("region-detail").textContent = "Select a region for its production figure.";
+<!-- LIBRARY -->
+<section id="library">
+  <div class="container">
+    <div class="eyebrow reveal">Knowledge base</div>
+    <h2 class="reveal">Diseases our model recognises</h2>
+    <p class="lead reveal">Hover or tap a card to flip it for symptoms and management tips.</p>
+    <div class="filters reveal" id="filters"></div>
+    <div class="lib" id="lib"></div>
+  </div>
+</section>
 
-      if (map) {
-        markers.clearLayers();
-        map.setView(view.center, view.zoom);
-      }
+<!-- MAPS -->
+<section id="maps">
+  <div class="container">
+    <div class="eyebrow reveal">Where rice grows</div>
+    <h2 class="reveal">Interactive 3D rice maps</h2>
+    <p class="lead reveal">Drag to rotate, scroll to zoom, hover bars for details. Switch between the world view and a close-up of India's rice states. Figures are approximate annual production in million tonnes.</p>
+    <div class="stage reveal">
+      <div id="globeEl"></div>
+      <div class="gctrl">
+        <button class="btn on" id="gWorld">🌍 World</button>
+        <button class="btn" id="gIndia">🇮🇳 India</button>
+        <button class="btn" id="gSpin">⟳ Auto-rotate</button>
+        <button class="btn" id="gStyle">🛰 Day/Night</button>
+      </div>
+      <div class="legend"><i style="background:#7ee081"></i>Low <i style="background:#f5c451;margin-left:8px"></i>Medium <i style="background:#ff6b6b;margin-left:8px"></i>High</div>
+      <div class="ginfo" id="ginfo"><h4>Select a region</h4>Hover over any bar on the globe.</div>
+    </div>
+    <div class="rank">
+      <div class="card reveal"><h4>🌍 Top world producers</h4><ul id="worldRank"></ul></div>
+      <div class="card reveal"><h4>🇮🇳 Top Indian states</h4><ul id="indiaRank"></ul></div>
+    </div>
+  </div>
+</section>
 
-      for (const [name, amount, lat, lon, share] of view.rows) {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = `${name} · ${amount.toFixed(2)} Mt`;
-        button.setAttribute("aria-pressed", "false");
-        $("regions").append(button);
+<!-- MODEL -->
+<section id="model">
+  <div class="container">
+    <div class="eyebrow reveal">Under the hood</div>
+    <h2 class="reveal">How it works</h2>
+    <div class="pipe card reveal" id="pipe"></div>
+    <div class="card reveal"><h4>Model evaluation</h4><p>Held-out accuracy, macro F1, per-class recall and confusion matrix are pending.</p></div>
+    <div class="tech reveal" id="tech"></div>
+  </div>
+</section>
 
-        function select() {
-          for (const other of $("regions").children) {
-            other.setAttribute("aria-pressed", String(other === button));
-          }
-          const unit = key === "world" ? "milled rice" : "rice";
-          const year = key === "world" ? "2024–25" : "2023–24";
-          $("region-detail").textContent =
-            `${name} produced ${amount.toFixed(2)} million tonnes of ${unit} in ${year}.` +
-            (share ? ` Its share of Indian production was ${share}.` : "");
-        }
+<!-- FAQ -->
+<section id="faq">
+  <div class="container" style="max-width:800px">
+    <div class="eyebrow reveal">Questions</div>
+    <h2 class="reveal">FAQ</h2>
+    <div class="reveal" id="faqList"></div>
+  </div>
+</section>
 
-        button.addEventListener("click", select);
-        if (map) {
-          const marker = L.circleMarker([lat, lon], {
-            radius: 22 * Math.sqrt(amount / view.rows[0][1]),
-            color: "#245339", fillColor: "#b3d36e", fillOpacity: .85, weight: 2
-          }).addTo(markers);
-          marker.bindTooltip(`${name} · ${amount.toFixed(2)} Mt`);
-          marker.on("click", select);
-          button.addEventListener("click", () => {
-            map.setView([lat, lon], key === "world" ? 4 : 6);
-            marker.openTooltip();
-          });
-        }
-      }
-    }
+<footer>
+  <p>Built with ❤️ for farmers · <span id="authorLine"></span></p>
+  <p style="font-size:.8rem;margin-top:6px">Predictions are decision support, not a replacement for an agronomist.</p>
+</footer>
 
-    $("world-btn").onclick = () => drawAtlas("world");
-    $("india-btn").onclick = () => drawAtlas("india");
-    drawAtlas("world");
+<button id="toTop">↑</button>
+<div id="toast"></div>
 
-    // Load mapping separately so the scanner can start even on slow internet.
-    const leaflet = document.createElement("script");
-    leaflet.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
-    leaflet.onload = () => {
-      map = L.map("map", { scrollWheelZoom: false, minZoom: 2 });
-      markers = L.layerGroup().addTo(map);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-      }).on("tileerror", () => {
-        $("map-message").textContent = "Some map tiles could not load. The region list is available.";
-      }).addTo(map);
-      drawAtlas(activeView);
-    };
-    leaflet.onerror = () => {
-      $("map").hidden = true;
-      $("map-message").textContent = "Map unavailable. Select any region in the list.";
-    };
-    document.head.append(leaflet);
+<script>
+/* =====================================================
+   1. CONFIG — EDIT THIS BLOCK FOR YOUR PROJECT
+   ===================================================== */
+const CONFIG = {
+  brand: "RiceLeaf AI",
+  author: "Pranav Jayachandran · MSc AI & ML",
+  API_URL: "/api/predict",
+  heroBadges: ["Four classes","Leaf and neck photos"],
+  stats: [
+    {v:4,s:"",l:"Photo classes",d:0},
+    {v:3,s:"",l:"Disease categories",d:0},
+    {v:2,s:"",l:"Leading results shown",d:0},
+    {v:8,s:"",l:"Recent scans kept in this tab",d:0}
+  ],
+  pipeline: [
+    ["Capture","Upload a photo or use your camera"],
+    ["Analyse","The trained ANN analyzes colour and edge features."],
+    ["Compare","Rank the four classes and inspect the runner-up"]
+  ],
+  tech: ["HTML","CSS","JavaScript"],
+  faq: [
+    ["How accurate is the model?","Your reported ANN run correctly classified 600 of 816 held-out photos (73.53%)."],
+    ["Which diseases are supported?","Healthy, Brown Spot, Leaf Blast and Neck Blast. Include the panicle neck when checking for Neck Blast."],
+    ["Do my images get uploaded?","Your photo is sent to the RiceLeaf AI server for analysis."],
+    ["Can it work offline?","The scanner uses your local Python server. The globe needs an internet connection."],
+    ["How was the map data collected?","Approximate figures from public FAO / USDA / Indian agriculture ministry summaries. Verify before publishing."]
+  ]
+};
 
-    // ---------- Disease guide ----------
-    const guide = [
-      ["Brown Spot",
-       "Look for round or oval brown spots. Some have lighter centers.",
-       "Capture several spots and some surrounding leaf tissue."],
-      ["Leaf Blast",
-       "Lesions can be elongated with pointed ends, pale gray centers, and brown margins.",
-       "Photograph the leaf blade with the ends and edges of the lesions in focus."],
-      ["Neck Blast",
-       "Look for gray-brown discoloration around the neck below the grain head. An affected panicle may bend.",
-       "Include the grain head and its connection to the stem."],
-      ["Healthy",
-       "This class represents training photos labeled healthy. Visible tissue generally lacks the characteristic lesions described in this guide.",
-       "Choose an evenly lit view of the leaf surface and surrounding tissue."]
-    ];
+/* =====================================================
+   2. DISEASE DATA
+   ===================================================== */
+const DISEASES = {
+  "Brown Spot":{em:"🟤",sev:"mid",type:"Fungal",cause:"Bipolaris oryzae",
+    sym:["Oval brown spots with yellow halo","Spots merge and dry leaf","Common in nutrient-poor soil"],
+    tx:["Balanced NPK + potassium","Seed treatment with fungicide","Spray mancozeb or propiconazole","Remove infected stubble"]},
+  "Leaf Blast":{em:"💥",sev:"high",type:"Fungal",cause:"Magnaporthe oryzae",
+    sym:["Diamond-shaped lesions with grey centre","Lesions with brown margins","Can kill entire leaves/neck"],
+    tx:["Plant resistant varieties","Split nitrogen doses","Apply tricyclazole","Avoid dense planting"]},
+  "Neck Blast":{em:"🌾",sev:"high",type:"Fungal",cause:"Blast affecting the panicle neck",
+    sym:["Inspect the neck immediately below the grain head","Include the entire panicle neck in the photo"],
+    tx:["Ask a local crop specialist to examine the affected panicle"]},
+  "Healthy":{em:"✅",sev:"low",type:"None",cause:"No disease detected",
+    sym:["Uniform green colour","No lesions or streaks","Normal growth"],
+    tx:["Keep monitoring weekly","Maintain water management","Balanced fertilisation"]}
+};
+const LABELS = Object.keys(DISEASES);
 
-    for (const [name, description, photo] of guide) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = name;
-      button.onclick = () => {
-        for (const other of $("disease-tabs").children) {
-          other.setAttribute("aria-pressed", String(other === button));
-        }
-        $("disease-title").textContent = name;
-        $("disease-text").textContent = description;
-        $("disease-photo").textContent = photo;
-      };
-      $("disease-tabs").append(button);
-    }
-    $("disease-tabs").firstElementChild.click();
+/* =====================================================
+   3. HELPERS
+   ===================================================== */
+const $ = s => document.querySelector(s);
+const toast = m => { const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); };
+$('#brand').textContent = CONFIG.brand; document.title = CONFIG.brand + " — Rice Disease Detection";
+$('#authorLine').textContent = CONFIG.author;
+$('#heroBadges').innerHTML = CONFIG.heroBadges.map(b=>`<span class="badge">${b}</span>`).join('');
+$('#modeNote').textContent = "Upload a photo to analyze it with the trained ANN.";
 
-    // ---------- Scanner ----------
-    let ready = false;
-    let previewUrl;
-    let firstResult = null;
+/* nav, theme, scroll */
+$('#burger').onclick = () => $('#links').classList.toggle('open');
+document.querySelectorAll('.nav-links a').forEach(a=>a.onclick=()=>$('#links').classList.remove('open'));
+$('#themeBtn').onclick = () => {
+  const h=document.documentElement, d=h.dataset.theme==='dark';
+  h.dataset.theme = d?'light':'dark'; $('#themeBtn').textContent = d?'☀️':'🌙';
+};
+addEventListener('scroll',()=>{
+  const s=scrollY, m=document.body.scrollHeight-innerHeight;
+  $('#scrollbar').style.width=(s/m*100)+'%';
+  $('#toTop').classList.toggle('show',s>600);
+});
+$('#toTop').onclick=()=>scrollTo({top:0});
+const io = new IntersectionObserver(es=>es.forEach(e=>{ if(e.isIntersecting){e.target.classList.add('show');io.unobserve(e.target);} }),{threshold:.12});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
 
-    async function jsonRequest(path, options) {
-      const response = await fetch(path, options);
-      const data = await response.json().catch(() => null);
-      if (!response.ok || data === null && path !== "/api/evaluation") {
-        throw new Error(data?.detail || `Request failed (${response.status}).`);
-      }
-      return data;
-    }
+/* tilt card */
+const tc=$('#tiltCard');
+tc.parentElement.addEventListener('mousemove',e=>{
+  const r=tc.getBoundingClientRect(), x=(e.clientX-r.left)/r.width-.5, y=(e.clientY-r.top)/r.height-.5;
+  tc.style.transform=`rotateY(${x*22}deg) rotateX(${-y*22}deg)`;
+});
+tc.parentElement.addEventListener('mouseleave',()=>tc.style.transform='');
 
-    async function predict(file) {
-      if (file.size > 8 * 1024 * 1024) throw new Error("Choose a photo up to 8 MB.");
-      const data = await jsonRequest("/api/predict", { method: "POST", body: file });
-      if (!Array.isArray(data.scores) || data.scores.length < 2) {
-        throw new Error("The backend returned an incomplete prediction.");
-      }
-      return data;
-    }
+/* particles (floating grains) */
+(function(){
+  const c=$('#particles'), x=c.getContext('2d'); let W,H,P=[];
+  function size(){W=c.width=c.offsetWidth;H=c.height=c.offsetHeight;}
+  size(); addEventListener('resize',size);
+  for(let i=0;i<50;i++)P.push({x:Math.random()*2000,y:Math.random()*1000,r:Math.random()*4+2,s:Math.random()*.6+.2,a:Math.random()*6});
+  (function loop(){
+    x.clearRect(0,0,W,H);
+    P.forEach(p=>{
+      p.y-=p.s; p.a+=.01; p.x+=Math.sin(p.a)*.5;
+      if(p.y<-10){p.y=H+10;p.x=Math.random()*W}
+      x.save();x.translate(p.x%W,p.y);x.rotate(p.a);
+      x.fillStyle='rgba(245,196,81,.35)';x.beginPath();x.ellipse(0,0,p.r,p.r*2.2,0,0,7);x.fill();x.restore();
+    });
+    requestAnimationFrame(loop);
+  })();
+})();
 
-    function showHeat(enabled) {
-      $("heat").hidden = !enabled;
-      $("heat-note").hidden = !enabled;
-      $("heat-toggle").textContent = enabled ? "Hide heatmap" : "Show heatmap";
-      $("heat-toggle").setAttribute("aria-pressed", String(enabled));
-    }
+/* animated stats */
+$('#statGrid').innerHTML = CONFIG.stats.map(s=>`<div class="stat"><b data-v="${s.v}" data-s="${s.s}" data-d="${s.d}">0</b><span>${s.l}</span></div>`).join('');
+new IntersectionObserver((es,o)=>es.forEach(e=>{
+  if(!e.isIntersecting)return; o.disconnect();
+  document.querySelectorAll('.stat b').forEach(b=>{
+    const v=+b.dataset.v,d=+b.dataset.d,s=b.dataset.s,t0=performance.now();
+    (function f(t){const p=Math.min((t-t0)/1500,1);b.textContent=(v*(1-Math.pow(1-p,3))).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})+s;if(p<1)requestAnimationFrame(f)})(t0);
+  });
+}),{threshold:.4}).observe($('#statGrid'));
 
-    function resetResult() {
-      firstResult = null;
-      $("result").hidden = true;
-      $("heat-toggle").hidden = true;
-      $("heat").replaceChildren();
-      $("second").value = "";
-      $("agreement").textContent = "";
-      showHeat(false);
-    }
+/* =====================================================
+   4. DETECTOR
+   ===================================================== */
+let currentImg=null, stream=null;
+const drop=$('#drop'), fileIn=$('#file');
+drop.onclick=()=>fileIn.click();
+fileIn.onchange=e=>e.target.files[0]&&loadFile(e.target.files[0]);
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>e.dataTransfer.files[0]&&loadFile(e.dataTransfer.files[0]));
+function loadFile(f){ if(!f.type.startsWith('image/'))return toast('Please choose an image'); const r=new FileReader(); r.onload=()=>showImage(r.result,f); r.readAsDataURL(f); }
+function showImage(src,file){ stopCam(); currentImg={src,file};$("#result").textContent=file?"Photo ready for analysis.":"Sample illustration. Choose a real photo to scan."; drop.innerHTML=`<img src="${src}" alt="leaf">`; }
+$('#clearBtn').onclick=()=>{stopCam();currentImg=null;fileIn.value='';drop.innerHTML='<div class="ico">📷</div><h3>Drop a rice leaf image here</h3><p style="color:var(--muted)">or click to browse</p>';$('#result').innerHTML='<div class="placeholder">🌱<br>Results will appear here</div>';};
+$('#camBtn').onclick=async()=>{
+  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    drop.innerHTML='<video autoplay playsinline></video>'; drop.querySelector('video').srcObject=stream; $('#snapBtn').style.display='inline-flex';
+  }catch{ toast('Camera not available'); }
+};
+$('#snapBtn').onclick=()=>{
+  const v=drop.querySelector('video'); if(!v)return;
+  const c=document.createElement('canvas'); c.width=v.videoWidth;c.height=v.videoHeight;c.getContext('2d').drawImage(v,0,0);
+  c.toBlob(b=>showImage(c.toDataURL('image/jpeg'),new File([b],'capture.jpg',{type:'image/jpeg'})),'image/jpeg');
+};
+function stopCam(){ if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;} $('#snapBtn').style.display='none'; }
 
-    $("photo").onchange = () => {
-      resetResult();
-      const file = $("photo").files[0];
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
-      if (file) {
-        previewUrl = URL.createObjectURL(file);
-        $("preview").src = previewUrl;
-      } else {
-        $("preview").removeAttribute("src");
-      }
-      $("stage").hidden = !file;
-      $("analyze").disabled = !ready || !file;
-      $("scan-message").textContent = file ? "Photo selected." : "Select a photo to begin.";
-    };
+/* generated sample leaves (so the demo works without any files) */
+function makeSample(kind){
+  const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');
+  const base={Healthy:'#3f9d3a','Brown Spot':'#4a9a38','Leaf Blast':'#58963a','Neck Blast':'#c9b43a'}[kind];
+  x.fillStyle='#d9e6c8';x.fillRect(0,0,256,256);
+  x.fillStyle=base;x.beginPath();x.moveTo(20,230);x.quadraticCurveTo(100,60,240,20);x.quadraticCurveTo(170,170,20,230);x.fill();
+  const spots={'Brown Spot':['#7a4a1c',26],'Leaf Blast':['#8a8a7a',14],'Neck Blast':['#8a643a',10]}[kind];
+  if(spots)for(let i=0;i<spots[1];i++){const t=Math.random();x.fillStyle=spots[0];x.beginPath();x.ellipse(40+t*170+Math.random()*20,210-t*180+Math.random()*20,4+Math.random()*5,3+Math.random()*4,Math.random()*3,0,7);x.fill();}
+  return c.toDataURL('image/png');
+}
+$('#samples').innerHTML=['Healthy','Brown Spot','Leaf Blast','Neck Blast'].map(k=>`<img data-k="${k}" title="${k}" src="${makeSample(k)}">`).join('');
+document.querySelectorAll('#samples img').forEach(i=>i.onclick=()=>{showImage(i.src,null);toast("Illustration. Upload a real photo to scan.")});
 
-    function renderResult(data) {
-      firstResult = data;
-      const [top, next] = data.scores;
-      const uncertain = data.uncertain ?? data.low_score ?? false;
-      $("result").hidden = false;
-      $("scan-message").textContent = `Analyzed using ${data.model || "Dense ANN"}.`;
-      $("prediction").textContent = `${uncertain ? "Possible match" : "Top match"} · ${top.label}`;
-      $("runner").textContent = `Runner-up · ${next.label}`;
-      $("guidance").hidden = !uncertain;
-      $("guidance").textContent = data.guidance || "Try another clear photo of the same plant.";
+$('#runBtn').onclick=analyze;
+async function analyze(){
+  const photo=currentImg;
+  if(!photo?.file)return toast('Choose a real photo or take a camera photo.');
+  const result=$('#result');
+  result.textContent='Analyzing with the trained ANN…';
+  try {
+    const response=await fetch(CONFIG.API_URL,{method:'POST',body:photo.file});
+    const payload=await response.json();
+    if(!response.ok)throw new Error(payload.detail || 'Prediction failed.');
+    if(currentImg!==photo)return;
+    const scores=payload.scores;
+    if(!Array.isArray(scores) || scores.length!==4 ||
+       new Set(scores.map(s=>s.label)).size!==4 ||
+       scores.some(s=>!Object.hasOwn(DISEASES,s.label)||!Number.isFinite(s.score)||s.score<0||s.score>1))
+      throw new Error('Invalid ANN response.');
+    scores.sort((a,b)=>b.score-a.score);
+    renderResult({label:scores[0].label,confidence:scores[0].score,
+      uncertain:scores[0].score<.6 || scores[0].score-scores[1].score<.15,
+      probabilities:Object.fromEntries(scores.map(s=>[s.label,s.score]))});
+  }catch(error){if(currentImg===photo)result.textContent='Scan unavailable. '+error.message;}
+}
+let lastOut=null;
+function renderResult(o){
+  lastOut=o; const D=DISEASES[o.label]||DISEASES.Healthy, pct=Math.round(o.confidence*100);
+  const sorted=Object.entries(o.probabilities||{[o.label]:o.confidence}).sort((a,b)=>b[1]-a[1]);
+  $('#result').innerHTML=`
+   <div class="verdict"><div><span class="sev ${D.sev}">${o.uncertain?'Uncertain match':'Top match'}</span>
+     <h3>${D.em} ${o.label}</h3><small style="color:var(--muted)">${D.type} · ${D.cause}</small></div>
+     <div class="ring" id="ring" data-v="${pct}%"></div></div>
+   <p>${o.uncertain ? "ANN scores are close or weak. Try another angle" : "Dense ANN model score"} · Runner-up: ${sorted[1]?.[0] || "Unavailable"}</p>
+   <div class="bars">${sorted.map(([l,p])=>`<div class="bar"><div style="display:flex;justify-content:space-between"><span>${l}</span><span>${(p*100).toFixed(1)}%</span></div><div class="track"><div class="fill" data-w="${p*100}"></div></div></div>`).join('')}</div>
+   <div class="tabs"><button class="tab on" data-t="sym">Symptoms</button><button class="tab" data-t="tx">Treatment</button></div>
+   <div class="tabbody" id="tb"></div>
+   <div class="row"><button class="btn small" id="dl">⬇ Report</button><button class="btn small" id="sh">🔗 Copy summary</button></div>`;
+  requestAnimationFrame(()=>{$('#ring').style.setProperty('--p',pct);document.querySelectorAll('.fill').forEach(f=>f.style.width=f.dataset.w+'%');});
+  const show=t=>$('#tb').innerHTML='<ul>'+D[t].map(i=>`<li>${i}</li>`).join('')+'</ul>';
+  show('sym');
+  document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');show(t.dataset.t)});
+  $('#dl').onclick=()=>{
+    const txt=`${CONFIG.brand} — Scan report\nDate: ${new Date().toLocaleString()}\nResult: ${o.uncertain?"Uncertain match · ":""}${o.label} (${pct}%)\nCause: ${D.cause}\n\nSymptoms:\n- ${D.sym.join('\n- ')}\n\nTreatment:\n- ${D.tx.join('\n- ')}\n`;
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt]));a.download='rice-scan-report.txt';a.click();
+  };
+  $('#sh').onclick=()=>navigator.clipboard.writeText(`Rice leaf scan: ${o.label} (${pct}% model score)`).then(()=>toast('Copied!'));
+  addHistory(o.label,pct);
+}
+const hist=[];
+function addHistory(l,p){
+  hist.unshift({l,p,src:currentImg.src,t:new Date().toLocaleTimeString()}); hist.length=Math.min(hist.length,8);
+  $('#history').innerHTML=hist.map(h=>`<div class="card hist"><img src="${h.src}"><b>${h.l}</b><br>${h.p}% · ${h.t}</div>`).join('');
+}
 
-      $("scores").replaceChildren();
-      for (const item of data.scores) {
-        const line = document.createElement("div");
-        line.className = "score-line";
-        const label = document.createElement("span");
-        const value = document.createElement("span");
-        label.textContent = item.label;
-        value.textContent = pct(item.score);
-        line.append(label, value);
+/* =====================================================
+   5. DISEASE LIBRARY
+   ===================================================== */
+const types=['All',...new Set(Object.values(DISEASES).map(d=>d.type))];
+$('#filters').innerHTML=types.map((t,i)=>`<button class="tab ${i?'':'on'}" data-f="${t}">${t}</button>`).join('');
+function drawLib(f='All'){
+  $('#lib').innerHTML=Object.entries(DISEASES).filter(([,d])=>f==='All'||d.type===f).map(([n,d])=>`
+   <div class="flip" onclick="this.classList.toggle('tap')"><div class="flip-in">
+     <div class="face"><div class="em">${d.em}</div><h3>${n}</h3><span class="sev ${d.sev}" style="width:fit-content">${d.type}</span><small style="color:var(--muted)">${d.cause}</small></div>
+     <div class="face back"><b>Symptoms</b><ul style="padding-left:18px">${d.sym.map(s=>`<li>${s}</li>`).join('')}</ul><b style="margin-top:8px">Treatment</b><ul style="padding-left:18px">${d.tx.map(s=>`<li>${s}</li>`).join('')}</ul></div>
+   </div></div>`).join('');
+}
+drawLib();
+document.querySelectorAll('#filters .tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('#filters .tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');drawLib(b.dataset.f)});
 
-        const bar = document.createElement("progress");
-        bar.max = 1;
-        bar.value = item.score;
-        bar.setAttribute("aria-label", `${item.label} score`);
-        $("scores").append(line, bar);
-      }
+/* =====================================================
+   6. 3D GLOBE (globe.gl)
+   ===================================================== */
+const WORLD=[ // [name, lat, lng, Mt/yr approx, note]
+ ["China",30.5,112,208,"World's largest producer; Yangtze basin & south"],
+ ["India",22,82,196,"Second largest; largest exporter of rice"],
+ ["Bangladesh",23.7,90.4,57,"Three seasons: Aus, Aman, Boro"],
+ ["Indonesia",-7.5,110,54,"Java & Sumatra paddies"],
+ ["Vietnam",10.5,105.5,43,"Mekong Delta rice bowl"],
+ ["Thailand",15.5,101,33,"Top exporter of jasmine rice"],
+ ["Myanmar",19,95.5,25,"Irrawaddy delta"],
+ ["Philippines",15,121,19,"Central Luzon, Ifugao terraces"],
+ ["Cambodia",12.5,105,11,"Tonlé Sap plains"],
+ ["Brazil",-23,-52,11,"Largest producer in the Americas"],
+ ["Pakistan",30,71,10,"Basmati in Punjab/Sindh"],
+ ["Japan",36,138,10,"Short-grain japonica"],
+ ["USA",34.5,-91.5,10,"Arkansas, California, Louisiana"],
+ ["Nigeria",9,7.5,8,"Largest in Africa"],
+ ["Egypt",31,31,5,"Nile Delta"],
+ ["Italy",45.2,8.8,1.5,"Po Valley — arborio, carnaroli"]
+];
+const INDIA=[
+ ["West Bengal",23.0,87.8,16,"Aman & Boro crops; Gangetic delta"],
+ ["Uttar Pradesh",27.0,80.8,15,"Largest area under rice"],
+ ["Punjab",31.0,75.4,12,"Highest yield; green-revolution state"],
+ ["Andhra Pradesh",16.0,80.0,9,"Krishna–Godavari delta"],
+ ["Odisha",20.5,84.5,8,"Mahanadi delta"],
+ ["Bihar",25.8,85.6,8,"Ganga plains"],
+ ["Telangana",17.8,79.1,8,"Irrigated Kharif & Rabi"],
+ ["Chhattisgarh",21.3,82.0,7,"'Rice bowl of Central India'"],
+ ["Tamil Nadu",11.0,79.0,7,"Cauvery delta"],
+ ["Assam",26.2,92.9,5,"Sali & Ahu rice"],
+ ["Haryana",29.2,76.2,5,"Basmati exporter"],
+ ["Madhya Pradesh",23.5,78.0,5,"Growing Kharif area"],
+ ["Karnataka",14.8,75.8,3.5,"Tungabhadra & Cauvery"],
+ ["Maharashtra",19.5,75.5,3,"Konkan & Vidarbha"],
+ ["Kerala",10.3,76.4,0.6,"Kuttanad below-sea-level farming"],
+ ["Jharkhand",23.6,85.3,5,"Upland rainfed rice"]
+];
+const colorFor=(v,max)=>{const r=v/max; return r>.55?'#ff6b6b':r>.18?'#f5c451':'#7ee081';};
+let mode='world', globe, night=true;
+const SKIES={night:['https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg','https://unpkg.com/three-globe/example/img/night-sky.png'],
+             day:['https://unpkg.com/three-globe/example/img/earth-day.jpg','https://unpkg.com/three-globe/example/img/night-sky.png']};
+function initGlobe(){
+  const el=$('#globeEl');
+  if(typeof Globe==='undefined'){el.innerHTML='<p style="color:#fff;padding:40px">Globe library could not load — check your internet connection.</p>';return;}
+  globe=Globe()(el)
+    .globeImageUrl(SKIES.night[0]).backgroundImageUrl(SKIES.night[1])
+    .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+    .atmosphereColor('#7ee081').atmosphereAltitude(.2)
+    .pointLat(d=>d[1]).pointLng(d=>d[2])
+    .pointRadius(()=>mode==='india'?.55:.9)
+    .pointAltitude(d=>d[3]/(mode==='india'?60:420))
+    .pointColor(d=>colorFor(d[3],mode==='india'?16:208))
+    .pointLabel(d=>`<div style="background:#000c;padding:6px 10px;border-radius:8px"><b>${d[0]}</b><br>${d[3]} Mt/yr</div>`)
+    .onPointHover(d=>d&&showInfo(d))
+    .onPointClick(d=>{globe.pointOfView({lat:d[1],lng:d[2],altitude:mode==='india'?.9:1.2},1000);showInfo(d)})
+    .ringLat(d=>d[1]).ringLng(d=>d[2]).ringColor(()=>t=>`rgba(126,224,129,${1-t})`)
+    .ringMaxRadius(3).ringPropagationSpeed(2).ringRepeatPeriod(1400)
+    .labelLat(d=>d[1]).labelLng(d=>d[2]).labelText(d=>d[0]).labelSize(.9).labelDotRadius(0).labelColor(()=>'rgba(255,255,255,.85)').labelAltitude(d=>d[3]/(mode==='india'?60:420)+.01).labelResolution(2);
+  globe.width(el.clientWidth).height(el.clientHeight);
+  addEventListener('resize',()=>globe.width(el.clientWidth).height(el.clientHeight));
+  globe.controls().autoRotate=true; globe.controls().autoRotateSpeed=.5;
+  setMode('world');
+  // optional country polygons: highlight rice nations
+  fetch('https://unpkg.com/globe.gl/example/datasets/ne_110m_admin_0_countries.geojson').then(r=>r.json()).then(g=>{
+    const names={};WORLD.forEach(w=>names[w[0]==='USA'?'United States of America':w[0]]=w[3]);
+    globe.polygonsData(g.features.filter(f=>names[f.properties.ADMIN]))
+      .polygonCapColor(f=>{const v=names[f.properties.ADMIN];return v>100?'rgba(255,107,107,.35)':v>20?'rgba(245,196,81,.3)':'rgba(126,224,129,.28)'})
+      .polygonSideColor(()=>'rgba(0,0,0,.1)').polygonStrokeColor(()=>'#fff3').polygonAltitude(.006);
+  }).catch(()=>{});
+}
+function showInfo(d){ $('#ginfo').innerHTML=`<h4>${d[0]}</h4><b>${d[3]} million tonnes/yr</b> (approx.)<br>${d[4]}`; }
+function setMode(m){
+  mode=m; if(!globe)return;
+  const data=m==='world'?WORLD:INDIA;
+  globe.pointsData([]).pointsData(data).labelsData(data).ringsData(data.slice(0,4));
+  globe.pointOfView(m==='world'?{lat:20,lng:80,altitude:2.4}:{lat:22,lng:80,altitude:.95},1600);
+  $('#gWorld').classList.toggle('on',m==='world');$('#gIndia').classList.toggle('on',m==='india');
+  if(m==='india'){globe.polygonsData([]);}else{ /* polygons reloaded on next init only */ }
+}
+$('#gWorld').onclick=()=>setMode('world');
+$('#gIndia').onclick=()=>setMode('india');
+$('#gSpin').onclick=function(){if(!globe)return;const c=globe.controls();c.autoRotate=!c.autoRotate;this.classList.toggle('on',c.autoRotate)};
+$('#gSpin').classList.add('on');
+$('#gStyle').onclick=()=>{if(!globe)return;night=!night;globe.globeImageUrl(SKIES[night?'night':'day'][0])};
+// build rankings
+function rankList(el,data,m){ $(el).innerHTML=data.slice().sort((a,b)=>b[3]-a[3]).slice(0,8).map((d,i)=>`<li data-n="${d[0]}"><span>${i+1}. ${d[0]}</span><b>${d[3]} Mt</b></li>`).join('');
+  document.querySelectorAll(el+' li').forEach((li,i)=>li.onclick=()=>{const d=data.slice().sort((a,b)=>b[3]-a[3])[i];setMode(m);globe?.pointOfView({lat:d[1],lng:d[2],altitude:m==='india'?.7:1.3},1200);showInfo(d);document.getElementById('maps').scrollIntoView({behavior:'smooth'})}); }
+rankList('#worldRank',WORLD,'world'); rankList('#indiaRank',INDIA,'india');
+// lazy-init globe when visible (saves GPU)
+new IntersectionObserver((es,o)=>{ if(es[0].isIntersecting){o.disconnect();initGlobe();} },{threshold:.1}).observe($('#maps .stage'));
 
-      if (Array.isArray(data.heatmap) && data.heatmap.length === 16) {
-        const peak = Math.max(...data.heatmap);
-        if (peak > 0) {
-          for (const drop of data.heatmap) {
-            const tile = document.createElement("span");
-            tile.style.background = `rgba(236, 75, 24, ${0.72 * drop / peak})`;
-            $("heat").append(tile);
-          }
-          $("heat-toggle").hidden = false;
-        }
-      }
-
-      $("cases").replaceChildren();
-      const similar = data.similar || [];
-      $("case-section").hidden = !similar.length;
-      for (const item of similar) {
-        const figure = document.createElement("figure");
-        const img = document.createElement("img");
-        img.src = item.image;
-        img.alt = `Training photo labeled ${item.label}`;
-        const caption = document.createElement("figcaption");
-        caption.textContent = `${item.label} · similarity ${item.similarity.toFixed(2)}`;
-        figure.append(img, caption);
-        $("cases").append(figure);
-      }
-    }
-
-    $("heat-toggle").onclick = () => showHeat($("heat").hidden);
-
-    $("scan-form").onsubmit = async event => {
-      event.preventDefault();
-      const file = $("photo").files[0];
-      if (!file || !ready) return;
-      resetResult();
-      $("analyze").disabled = true;
-      $("photo").disabled = true;
-      $("scan-message").textContent = "Analyzing your photo…";
-      try {
-        renderResult(await predict(file));
-      } catch (error) {
-        $("scan-message").textContent = error.message;
-      } finally {
-        $("photo").disabled = false;
-        $("analyze").disabled = false;
-      }
-    };
-
-    $("second").onchange = async () => {
-      const file = $("second").files[0];
-      const first = firstResult;
-      if (!file || !first) return;
-      $("second").disabled = true;
-      $("agreement").textContent = "Checking second angle…";
-      try {
-        const other = await predict(file);
-        if (firstResult !== first) return;
-        const a = first.scores[0].label;
-        const b = other.scores[0].label;
-        const uncertain = first.uncertain || first.low_score || other.uncertain || other.low_score;
-        $("agreement").textContent = a === b
-          ? `Both photos favor ${a}.${uncertain ? " At least one result was uncertain." : ""}`
-          : `The views disagree. First photo: ${a}. Second photo: ${b}.`;
-      } catch (error) {
-        if (firstResult === first) $("agreement").textContent = error.message;
-      } finally {
-        $("second").disabled = false;
-      }
-    };
-
-    // ---------- Model evaluation ----------
-    function buildTable(headers, rows, activeModel) {
-      const table = document.createElement("table");
-      const heading = table.createTHead().insertRow();
-      for (const title of headers) {
-        const cell = document.createElement("th");
-        cell.scope = "col";
-        cell.textContent = title;
-        heading.append(cell);
-      }
-      const body = table.createTBody();
-      for (const values of rows) {
-        const row = body.insertRow();
-        if (values[0] === activeModel) row.className = "winner";
-        for (const value of values) row.insertCell().textContent = value;
-      }
-      return table;
-    }
-
-    async function loadStatus() {
-      try {
-        const status = await jsonRequest("/api/status");
-        ready = status.ready;
-        $("status").textContent = ready
-          ? `Model ready · ${status.model || "Dense ANN"}`
-          : "Training required";
-        $("analyze").disabled = !ready || !$("photo").files.length;
-      } catch {
-        $("status").textContent = "Backend unavailable";
-      }
-    }
-
-    async function loadEvaluation() {
-      try {
-        const report = await jsonRequest("/api/evaluation");
-        if (!report) {
-          $("eval-note").textContent = "Train the advanced models to display their comparison here.";
-          return;
-        }
-        $("eval-note").textContent =
-          `${report.test_images} held-out photos. Active model: ${report.active_model}.`;
-        const rows = report.comparison.map(item => [
-          item.model, pct(item.validation_macro_f1), pct(item.accuracy),
-          pct(item.macro_precision), pct(item.macro_f1), pct(item.leaf_blast_recall)
-        ]);
-        $("comparison").append(buildTable(
-          ["Model", "Validation macro F1", "Test accuracy", "Macro precision",
-           "Test macro F1", "Leaf Blast recall"], rows, report.active_model
-        ));
-        $("matrix").append(buildTable(
-          ["Actual ↓ / Predicted →", ...report.labels],
-          report.confusion_matrix.map((row, i) => [report.labels[i], ...row])
-        ));
-        $("matrix-panel").hidden = false;
-      } catch {
-        $("eval-note").textContent =
-          "Evaluation results are unavailable. Check that the advanced app.py is running.";
-      }
-    }
-
-    loadStatus();
-    loadEvaluation();
-  </script>
+/* =====================================================
+   7. MODEL SECTION
+   ===================================================== */
+$('#pipe').innerHTML=CONFIG.pipeline.map((p,i)=>`<div class="step"><div class="n">${i+1}</div><h4>${p[0]}</h4><p>${p[1]}</p></div>`).join('');
+$('#tech').innerHTML=CONFIG.tech.map(t=>`<span class="badge">${t}</span>`).join('');
+/* FAQ */
+$('#faqList').innerHTML=CONFIG.faq.map(f=>`<details><summary>${f[0]}</summary><p>${f[1]}</p></details>`).join('');
+</script>
 </body>
 </html>
