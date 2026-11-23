@@ -465,9 +465,7 @@ async function analyze(){
   const result=$('#result');
   result.textContent='Analyzing with the trained ANN…';
   try {
-    const response=await fetch(CONFIG.API_URL,{method:'POST',body:photo.file});
-    const payload=await response.json();
-    if(!response.ok)throw new Error(payload.detail || 'Prediction failed.');
+    const payload = await scanInBrowser(photo);
     if(currentImg!==photo)return;
     const scores=payload.scores;
     if(!Array.isArray(scores) || scores.length!==4 ||
